@@ -20,6 +20,8 @@ except FileNotFoundError:
 
 if "history" not in st.session_state:
     st.session_state.history = []
+    st.session_state.keyword = []
+    st.session_state.last_keyword_detect_history = 0
     st.session_state.icon = [random.choice("🫠😎😺😄🥳"), random.choice("📻📟📠📱💻")]
 
 if "last_answered_time" not in st.session_state:
@@ -57,6 +59,7 @@ def main():
     df = history.as_dataframe()
     col2.write("Total tokens: {}".format(df["tokens"].sum()))
     col2.dataframe(df, height = max(200, history.len() * 45))
+    col2.write(st.session_state.keyword)
 
     col1.markdown("This conversation was started from **{}**".
         format("ChatGPT" if st.session_state.starter == "C" else "You")
@@ -111,13 +114,23 @@ def main():
             print('last answer pasted', last_answer_pasted, 'sec')
 
             if enabled_auto_speak and last_answer_pasted > auto_speak_interval:
-                history.add("system", random.choice(prompts["fairy"]))
-                print('history len', history.len())
+                keyword = random.choice(st.session_state.keyword["words"])
+                fairy = random.choice(prompts["fairy"]).format(keyword = keyword)
+                history.add("system", fairy)
 
                 assistant_text = send_and_recieve(history.all(), col1.empty())
                 history.add("assistant", assistant_text)
                 st.session_state.last_answered_time = time.time()
                 st.experimental_rerun()
+
+        if "last_keyword_detect_history" in st.session_state:
+            if st.session_state.last_keyword_detect_history < history.len() - 1:
+                print("auto keyword ", st.session_state.last_keyword_detect_history, history.len())
+                words = detect_keywords(history.all())
+                print(words)
+                if len(words) > 0:
+                    st.session_state.keyword = words
+                st.session_state.last_keyword_detect_history = history.len()
 
         st.experimental_rerun()
 
@@ -130,9 +143,7 @@ def send_and_recieve(messages, output_element):
         temperature = 1.1,
         stream = True
     )
-
     partial_words = "" 
-
     for chunk in response:
         if chunk and "delta" in chunk["choices"][0]:
             choice = chunk["choices"][0]
@@ -141,8 +152,19 @@ def send_and_recieve(messages, output_element):
                 output_element.write(partial_words)
             if choice["finish_reason"] is not None:
                 print('finish_reason', choice["finish_reason"])
-
     return partial_words
+
+
+def detect_keywords(messages):
+    concat_history = "\n".join([i["content"] for i in messages])
+    query = prompts["keyword"].format(concat_history = concat_history)
+    response = openai.ChatCompletion.create(
+        model = "gpt-3.5-turbo",
+        messages = [{"role": "system", "content": query}],
+    )
+    print(response.choices[0].message.content)
+    words = json.loads(response.choices[0].message.content)
+    return words
 
 
 if __name__ == "__main__":
