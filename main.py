@@ -21,6 +21,7 @@ except FileNotFoundError:
 if "history" not in st.session_state:
     st.session_state.history = []
     st.session_state.keyword = []
+    st.session_state.last_keyword_detect_history = 0
     st.session_state.icon = [random.choice("🫠😎😺😄🥳"), random.choice("📻📟📠📱💻")]
 
 if "last_answered_time" not in st.session_state:
@@ -80,13 +81,6 @@ def main():
     enabled_auto_speak = col1_4.checkbox("Auto speak", value=True)
     auto_speak_interval = col1_5.slider('Interval (sec)', 10, 60, 30)
 
-    if col1_2.button("keyword"):
-        print("keyword concat")
-        words = detect_keywords(history.all())
-        print(words)
-        if len(words) > 0:
-            st.session_state.keyword = words
-
     if st.session_state.starter == "C" and history.len() == 0:
         history.add("system", prompts["init"])
         history.add("system", prompts["start_by_chatgpt"])
@@ -128,6 +122,15 @@ def main():
                 history.add("assistant", assistant_text)
                 st.session_state.last_answered_time = time.time()
                 st.experimental_rerun()
+
+        if "last_keyword_detect_history" in st.session_state:
+            if st.session_state.last_keyword_detect_history < history.len() - 1:
+                print("auto keyword ", st.session_state.last_keyword_detect_history, history.len())
+                words = detect_keywords(history.all())
+                print(words)
+                if len(words) > 0:
+                    st.session_state.keyword = words
+                st.session_state.last_keyword_detect_history = history.len()
 
         st.experimental_rerun()
 
