@@ -78,6 +78,31 @@ def main():
     enabled_auto_speak = col1_4.checkbox("Auto speak", value=True)
     auto_speak_interval = col1_5.slider('Interval (sec)', 10, 60, 30)
 
+    if col1_2.button("keyword C"):
+        print("key concat")
+        concat_history = "\n".join([i["content"] for i in history.all()])
+        q = prompts["keyword"].format(concat_history = concat_history)
+        print(q)
+        response = openai.ChatCompletion.create(
+            model = "gpt-3.5-turbo",
+            messages = [{"role": "system", "content": q}],
+        )
+        print(response.choices[0].message.content)
+        words = json.loads(response.choices[0].message.content)
+        print(words)
+
+    if col1_2.button("keyword A"):
+        print("key array")
+        history_clone = history.all()[:]
+        history_clone.append({"role": "system", "content": prompts["keyword_a"]})
+        response = openai.ChatCompletion.create(
+            model = "gpt-3.5-turbo",
+            messages = history_clone,
+        )
+        print(response.choices[0].message.content)
+        words = json.loads(response.choices[0].message.content)
+        print(words)
+
     if st.session_state.starter == "C" and history.len() == 0:
         history.add("system", prompts["init"])
         history.add("system", prompts["start_by_chatgpt"])
@@ -130,9 +155,7 @@ def send_and_recieve(messages, output_element):
         temperature = 1.1,
         stream = True
     )
-
     partial_words = "" 
-
     for chunk in response:
         if chunk and "delta" in chunk["choices"][0]:
             choice = chunk["choices"][0]
@@ -141,7 +164,6 @@ def send_and_recieve(messages, output_element):
                 output_element.write(partial_words)
             if choice["finish_reason"] is not None:
                 print('finish_reason', choice["finish_reason"])
-
     return partial_words
 
 
