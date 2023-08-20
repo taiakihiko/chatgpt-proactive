@@ -53,12 +53,18 @@ def main():
         col2.button("from me", type="primary", on_click=starter_button_clicked, args=("P",))
         st.stop()
 
-    col1, col2 = st.columns([0.7, 0.3])
+    col1, col2 = st.columns([0.65, 0.35])
 
     history = History(st.session_state.history)
     df = history.as_dataframe()
     col2.write("Total tokens: {}".format(df["tokens"].sum()))
-    col2.dataframe(df, height = max(200, history.len() * 45))
+    col2.dataframe(
+        df, height = max(200, history.len() * 45),
+        use_container_width = True,
+        column_config = {
+            "chars": None,
+        }
+    )
     col2.write(st.session_state.keyword)
 
     col1.markdown("This conversation was started from **{}**".

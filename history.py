@@ -21,8 +21,8 @@ class History:
             chars = len(h["content"])
             tokens = len(tokenizer.encode(h["content"]))
             s = h["content"]
-            if len(s) > 10:
-                s = s[:10] + "..."
+            if len(s) > 18:
+                s = s[:18] + "..."
             data.append([h['role'], chars, tokens, s])
         return pd.DataFrame(
             data,
